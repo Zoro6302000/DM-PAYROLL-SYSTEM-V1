@@ -81,9 +81,9 @@
         <tfoot>
           <tr>
             <th>GRAND TOTAL</th>
-            <th id="grandGross">₱0.00</th>
-            <th id="grandDeductions">₱0.00</th>
-            <th id="grandNet">₱0.00</th>
+            <th id="grandGross">₱0</th>
+            <th id="grandDeductions">₱0</th>
+            <th id="grandNet">₱0</th>
             <th></th>
           </tr>
         </tfoot>
@@ -142,9 +142,9 @@
     let siteData = {};
 
     // helpers
-    function round2(n){ return Math.round((Number(n)||0) * 100) / 100; }
-    function pesoFormat(num) {
-      return "₱" + (Number(num)||0).toLocaleString("en-PH",{minimumFractionDigits:2, maximumFractionDigits:2});
+    function round0(n){ return Math.round(Number(n)||0); }
+    function pesoFormat(num){
+      return "₱" + (round0(num)).toLocaleString("en-PH",{minimumFractionDigits:0, maximumFractionDigits:0});
     }
 
     // persistence
@@ -260,10 +260,10 @@
         const rate = Number(emp.rate)||0;
         const days = Number(emp.days)||0;
         const otH  = Number(emp.ot)||0;
-        const otPay = round2((otH * rate) / 8);
-        const gross = round2(rate * days + otPay);
-        const deductions = round2((Number(emp.advance)||0) + (Number(emp.benefits)||0));
-        const net = round2(gross - deductions);
+        const otPay = round0((otH * rate) / 8);
+        const gross = round0(rate * days + otPay);
+        const deductions = round0((Number(emp.advance)||0) + (Number(emp.benefits)||0));
+        const net = round0(gross - deductions);
         emp.gross=gross; emp.net=net;
 
         const row=document.createElement("tr");
@@ -340,16 +340,16 @@
           const rate = Number(emp.rate)||0;
           const days = Number(emp.days)||0;
           const otH  = Number(emp.ot)||0;
-          const otPay = round2((otH * rate) / 8);
-          const gross = round2(rate * days + otPay);
-          const deductions = round2((Number(emp.advance)||0) + (Number(emp.benefits)||0));
-          const net = round2(gross - deductions);
+          const otPay = round0((otH * rate) / 8);
+          const gross = round0(rate * days + otPay);
+          const deductions = round0((Number(emp.advance)||0) + (Number(emp.benefits)||0));
+          const net = round0(gross - deductions);
           emp.gross=gross; emp.net=net;
 
           if(!siteTotals[site]) siteTotals[site]={gross:0,deductions:0,net:0};
-          siteTotals[site].gross=round2(siteTotals[site].gross + gross);
-          siteTotals[site].deductions=round2(siteTotals[site].deductions + deductions);
-          siteTotals[site].net=round2(siteTotals[site].net + net);
+          siteTotals[site].gross = round0(siteTotals[site].gross + gross);
+          siteTotals[site].deductions = round0(siteTotals[site].deductions + deductions);
+          siteTotals[site].net = round0(siteTotals[site].net + net);
         });
       }
       updateDashboardSummary();
@@ -381,7 +381,9 @@
           <td>${pesoFormat(siteTotals[site].net)}</td>
           <td style="height:40px;"></td>
         </tr>`;
-        gGross+=siteTotals[site].gross; gDed+=siteTotals[site].deductions; gNet+=siteTotals[site].net;
+        gGross = round0(gGross + siteTotals[site].gross);
+        gDed   = round0(gDed + siteTotals[site].deductions);
+        gNet   = round0(gNet + siteTotals[site].net);
       }
       document.getElementById("grandGross").textContent=pesoFormat(gGross);
       document.getElementById("grandDeductions").textContent=pesoFormat(gDed);
@@ -413,7 +415,9 @@
 
       sitesList.forEach(site=>{
         const t = siteTotals[site] || {gross:0,deductions:0,net:0};
-        gGross += t.gross; gDed += t.deductions; gNet += t.net;
+        gGross = round0(gGross + t.gross);
+        gDed   = round0(gDed + t.deductions);
+        gNet   = round0(gNet + t.net);
         bodyRows += `<tr>
           <td>${site}</td>
           <td class="num">${pesoFormat(t.gross)}</td>
@@ -502,11 +506,11 @@
         const rate = Number(emp.rate)||0;
         const days = Number(emp.days)||0;
         const otH  = Number(emp.ot)||0;
-        const otPay = round2((otH * rate) / 8);
-        const gross = round2(rate * days + otPay);
-        const adv   = Number(emp.advance)||0;
-        const ben   = Number(emp.benefits)||0;
-        const net   = round2(gross - round2(adv+ben));
+        const otPay = round0((otH * rate) / 8);
+        const gross = round0(rate * days + otPay);
+        const adv   = round0(Number(emp.advance)||0);
+        const ben   = round0(Number(emp.benefits)||0);
+        const net   = round0(gross - round0(adv+ben));
 
         bodyRows += `<tr>
           <td class="nameCol">${emp.name||""}</td>
@@ -525,16 +529,16 @@
         const rate = Number(e.rate)||0;
         const days = Number(e.days)||0;
         const otH  = Number(e.ot)||0;
-        const otPay = round2((otH * rate) / 8);
-        const gross = round2(rate * days + otPay);
-        const adv   = Number(e.advance)||0;
-        const ben   = Number(e.benefits)||0;
-        const net   = round2(gross - round2(adv+ben));
+        const otPay = round0((otH * rate) / 8);
+        const gross = round0(rate * days + otPay);
+        const adv   = round0(Number(e.advance)||0);
+        const ben   = round0(Number(e.benefits)||0);
+        const net   = round0(gross - round0(adv+ben));
         return {
-          gross: round2(a.gross + gross),
-          advance: round2(a.advance + adv),
-          benefits: round2(a.benefits + ben),
-          net: round2(a.net + net)
+          gross: round0(a.gross + gross),
+          advance: round0(a.advance + adv),
+          benefits: round0(a.benefits + ben),
+          net: round0(a.net + net)
         };
       }, {gross:0, advance:0, benefits:0, net:0});
 
@@ -576,7 +580,8 @@
   </table>
   <br>
   <div style="margin-top:20px;">Approved by:<br><br><u>DANA MALIWANAG</u><br>Signature over printed name</div>
-</body></html>`);
+</body>
+</html>`);
       win.print();
       win.close();
     }
@@ -586,7 +591,7 @@
       let csv="Site,Name,Rate,Days Worked,OT Hours,Gross,Cash Advance,Benefits,Net\n";
       for(let site in siteData){
         siteData[site].forEach(emp=>{
-          csv+=`${site},${emp.name},${emp.rate},${emp.days},${emp.ot},${emp.gross},${emp.advance},${emp.benefits},${emp.net}\n`;
+          csv+=`${site},${emp.name},${round0(emp.rate)},${emp.days},${emp.ot},${round0(emp.gross)},${round0(emp.advance)},${round0(emp.benefits)},${round0(emp.net)}\n`;
         });
       }
       const blob=new Blob([csv],{type:"text/csv"});
