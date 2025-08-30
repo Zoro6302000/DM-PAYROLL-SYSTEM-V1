@@ -38,7 +38,6 @@
   </style>
 </head>
 <body>
-  <!-- Header with Logo and Company Info -->
   <div style="display:flex;align-items:center;justify-content:center;gap:15px;">
     <img src="DM LOGO.png" alt="Company Logo" style="height:120px;">
     <div>
@@ -46,27 +45,23 @@
     </div>
   </div>
 
-  <!-- Centered Payroll Title -->
   <div style="text-align:center;margin-top:5px;">
     <h2 style="margin:5px 0;font-size:30px;">Payroll System</h2>
     <div style="font-size:12px;">by: Wenjunzxc</div>
   </div>
 
-  <!-- Payroll Period -->
   <div class="date">
-    Payroll Period: 
-    <input type="date" id="payrollFrom"> to 
+    Payroll Period:
+    <input type="date" id="payrollFrom"> to
     <input type="date" id="payrollTo">
   </div>
 
-  <!-- Navigation -->
   <nav>
     <button onclick="showInterface('dashboard')">Dashboard</button>
     <button onclick="showInterface('site')">Per Site Payroll</button>
     <button onclick="addNewSite()">Add New Site</button>
   </nav>
 
-  <!-- DASHBOARD -->
   <div id="dashboardInterface">
     <h2 style="text-align:center;">Welcome to the Payroll System</h2>
     <p style="text-align:center;">This dashboard provides an overview of all projects and payroll summaries.</p>
@@ -99,7 +94,6 @@
     </div>
   </div>
 
-  <!-- PER SITE -->
   <div id="siteInterface" class="hidden">
     <label for="perSiteSelect"><strong>Select Site:</strong></label>
     <select id="perSiteSelect" onchange="renderSiteTable()"></select>
@@ -145,9 +139,8 @@
   <script>
     let siteTotals = {};
     let sites = [];
-    let siteData = {};  
+    let siteData = {};
 
-    // persistence
     function saveData(){
       localStorage.setItem("sites", JSON.stringify(sites));
       localStorage.setItem("siteData", JSON.stringify(siteData));
@@ -210,7 +203,7 @@
         option.textContent=siteName;
         select.appendChild(option);
         siteData[siteName]=[];
-        select.value=siteName; 
+        select.value=siteName;
         renderSiteTable();
         saveData();
       } else {
@@ -244,7 +237,6 @@
       saveData();
     }
 
-    // NEW: delete a single employee row
     function deleteEmployee(site, idx){
       if(!siteData[site]) return;
       if(!confirm("Delete this employee?")) return;
@@ -266,16 +258,16 @@
         emp.gross=gross;emp.net=net;
         const row=document.createElement("tr");
         row.innerHTML=`
-          <td><input type="text" class="nameInput" style="width:auto;min-width:200px;" value="${emp.name}" 
-            oninput="this.value=this.value.toUpperCase(); updateEmployee('${site}',${idx},'name',this.value)" 
+          <td><input type="text" class="nameInput" style="width:auto;min-width:200px;" value="${emp.name}"
+            oninput="this.value=this.value.toUpperCase(); updateEmployee('${site}',${idx},'name',this.value)"
             onkeydown="focusNext(event,this)" placeholder="NAME"></td>
-          <td><input type="number" value="${emp.rate?emp.rate:''}" class="rate" step="0.01" 
+          <td><input type="number" value="${emp.rate?emp.rate:''}" class="rate" step="0.01"
             oninput="updateEmployee('${site}',${idx},'rate',this.value)" onkeydown="focusNext(event,this)" placeholder="₱"></td>
           <td><input type="number" value="${emp.days?emp.days:''}" class="days" step="0.5"
-            onblur="validateHalfStep(this,'${site}',${idx},'days')" 
+            onblur="validateHalfStep(this,'${site}',${idx},'days')"
             onkeydown="focusNext(event,this)" placeholder="Days (Max ${getMaxDays()})"></td>
           <td><input type="number" value="${emp.ot?emp.ot:''}" class="ot" step="0.5"
-            onblur="validateHalfStep(this,'${site}',${idx},'ot')" 
+            onblur="validateHalfStep(this,'${site}',${idx},'ot')"
             onkeydown="focusNext(event,this)" placeholder="OT"></td>
           <td class="gross">${pesoFormat(emp.gross)}</td>
           <td><input type="number" value="${emp.advance?emp.advance:''}" class="advance" step="0.01"
@@ -364,7 +356,7 @@
 
     function updateDashboardSummary(){
       const tbody=document.querySelector("#siteSummary tbody");
-      tbody.innerHTML=""; 
+      tbody.innerHTML="";
       let gGross=0,gDed=0,gNet=0;
       for(let site in siteTotals){
         tbody.innerHTML+=`<tr>
@@ -394,11 +386,92 @@
       }
     }
 
+    // Improved dashboard printing
     function printSummary(){
-      window.print();
+      computePayroll();
+
+      const sitesList = Object.keys(siteTotals || {});
+      if(sitesList.length === 0){ alert("No data to print."); return; }
+
+      let bodyRows = "";
+      let gGross=0, gDed=0, gNet=0;
+
+      sitesList.forEach(site=>{
+        const t = siteTotals[site] || {gross:0,deductions:0,net:0};
+        gGross += t.gross; gDed += t.deductions; gNet += t.net;
+        bodyRows += `<tr>
+          <td>${site}</td>
+          <td class="num">${pesoFormat(t.gross)}</td>
+          <td class="num">${pesoFormat(t.deductions)}</td>
+          <td class="num">${pesoFormat(t.net)}</td>
+          <td></td>
+        </tr>`;
+      });
+
+      const from = document.getElementById("payrollFrom").value || "";
+      const to   = document.getElementById("payrollTo").value || "";
+      const printed = new Date().toLocaleDateString("en-PH");
+
+      const win = window.open("", "_blank");
+      win.document.write(`<html>
+<head>
+  <title>Payroll Summary</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    @media print {
+      body { margin: 0; font-family: Arial, sans-serif; font-size: 12px; }
+      h2, h3 { margin: 4px 0; text-align: center; }
+      .meta { text-align: center; margin: 6px 0 10px; }
+      table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+      th, td { border: 1px solid #000; padding: 6px; }
+      th { background: #000; color: #fff; }
+      td.num, th.num { text-align: right; }
+      tfoot th { text-align: right; }
+      .sig { margin-top: 24px; display: flex; gap: 40px; justify-content: space-between; }
+      .sig div { width: 48%; text-align: center; }
+      .sig u { display: inline-block; min-width: 220px; }
+    }
+  </style>
+</head>
+<body>
+  <h2>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h2>
+  <h3>Payroll Summary by Site</h3>
+  <div class="meta">
+    Payroll Period: ${from} to ${to} • Printed: ${printed}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Site</th>
+        <th class="num">Total Gross</th>
+        <th class="num">Total Deductions</th>
+        <th class="num">Total Net</th>
+        <th>Remarks</th>
+      </tr>
+    </thead>
+    <tbody>${bodyRows}</tbody>
+    <tfoot>
+      <tr>
+        <th>GRAND TOTAL</th>
+        <th class="num">${pesoFormat(gGross)}</th>
+        <th class="num">${pesoFormat(gDed)}</th>
+        <th class="num">${pesoFormat(gNet)}</th>
+        <th></th>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="sig">
+    <div>Prepared by:<br><br><u>${(localStorage.getItem("preparedBy")||"")}</u><br>Signature over printed name</div>
+    <div>Approved by:<br><br><u>DANA MALIWANAG</u><br>Signature over printed name</div>
+  </div>
+</body>
+</html>`);
+      win.print();
+      win.close();
     }
 
-    // printing with aligned totals and no-wrap name
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
