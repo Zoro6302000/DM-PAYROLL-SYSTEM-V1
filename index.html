@@ -141,6 +141,13 @@
     let sites = [];
     let siteData = {};
 
+    // helpers
+    function round2(n){ return Math.round((Number(n)||0) * 100) / 100; }
+    function pesoFormat(num) {
+      return "₱" + (Number(num)||0).toLocaleString("en-PH",{minimumFractionDigits:2, maximumFractionDigits:2});
+    }
+
+    // persistence
     function saveData(){
       localStorage.setItem("sites", JSON.stringify(sites));
       localStorage.setItem("siteData", JSON.stringify(siteData));
@@ -169,10 +176,8 @@
       }
     }
     document.addEventListener("DOMContentLoaded", loadData);
-
-    function pesoFormat(num) {
-      return "₱" + (parseFloat(num)||0).toLocaleString("en-PH",{minimumFractionDigits:2, maximumFractionDigits:2});
-    }
+    document.getElementById("payrollFrom").addEventListener("change", ()=>{ saveData(); computePayroll(); });
+    document.getElementById("payrollTo").addEventListener("change", ()=>{ saveData(); computePayroll(); });
 
     function getMaxDays() {
       const from=document.getElementById("payrollFrom").value;
@@ -252,13 +257,18 @@
       tbody.innerHTML="";
       if(!site||!siteData[site]) return;
       siteData[site].forEach((emp,idx)=>{
-        const gross=(parseFloat(emp.rate)||0)*(parseFloat(emp.days)||0)+((parseFloat(emp.ot)||0)*(parseFloat(emp.rate)||0)/8);
-        const deductions=(parseFloat(emp.advance)||0)+(parseFloat(emp.benefits)||0);
-        const net=gross-deductions;
-        emp.gross=gross;emp.net=net;
+        const rate = Number(emp.rate)||0;
+        const days = Number(emp.days)||0;
+        const otH  = Number(emp.ot)||0;
+        const otPay = round2((otH * rate) / 8);
+        const gross = round2(rate * days + otPay);
+        const deductions = round2((Number(emp.advance)||0) + (Number(emp.benefits)||0));
+        const net = round2(gross - deductions);
+        emp.gross=gross; emp.net=net;
+
         const row=document.createElement("tr");
         row.innerHTML=`
-          <td><input type="text" class="nameInput" style="width:auto;min-width:200px;" value="${emp.name}"
+          <td><input type="text" class="nameInput" style="width:auto;min-width:200px;" value="${emp.name||""}"
             oninput="this.value=this.value.toUpperCase(); updateEmployee('${site}',${idx},'name',this.value)"
             onkeydown="focusNext(event,this)" placeholder="NAME"></td>
           <td><input type="number" value="${emp.rate?emp.rate:''}" class="rate" step="0.01"
@@ -327,14 +337,19 @@
       siteTotals={};
       for(let site in siteData){
         siteData[site].forEach(emp=>{
-          const gross=(parseFloat(emp.rate)||0)*(parseFloat(emp.days)||0)+((parseFloat(emp.ot)||0)*(parseFloat(emp.rate)||0)/8);
-          const deductions=(parseFloat(emp.advance)||0)+(parseFloat(emp.benefits)||0);
-          const net=gross-deductions;
-          emp.gross=gross;emp.net=net;
+          const rate = Number(emp.rate)||0;
+          const days = Number(emp.days)||0;
+          const otH  = Number(emp.ot)||0;
+          const otPay = round2((otH * rate) / 8);
+          const gross = round2(rate * days + otPay);
+          const deductions = round2((Number(emp.advance)||0) + (Number(emp.benefits)||0));
+          const net = round2(gross - deductions);
+          emp.gross=gross; emp.net=net;
+
           if(!siteTotals[site]) siteTotals[site]={gross:0,deductions:0,net:0};
-          siteTotals[site].gross+=gross;
-          siteTotals[site].deductions+=deductions;
-          siteTotals[site].net+=net;
+          siteTotals[site].gross=round2(siteTotals[site].gross + gross);
+          siteTotals[site].deductions=round2(siteTotals[site].deductions + deductions);
+          siteTotals[site].net=round2(siteTotals[site].net + net);
         });
       }
       updateDashboardSummary();
@@ -386,7 +401,7 @@
       }
     }
 
-    // Improved dashboard printing
+    // improved dashboard printing
     function printSummary(){
       computePayroll();
 
@@ -472,6 +487,7 @@
       win.close();
     }
 
+    // per-site printing with aligned totals and no-wrap name
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
@@ -485,17 +501,18 @@
       list.forEach(emp=>{
         const rate = Number(emp.rate)||0;
         const days = Number(emp.days)||0;
-        const ot   = Number(emp.ot)||0;
-        const gross = Number(emp.gross)||0;
+        const otH  = Number(emp.ot)||0;
+        const otPay = round2((otH * rate) / 8);
+        const gross = round2(rate * days + otPay);
         const adv   = Number(emp.advance)||0;
         const ben   = Number(emp.benefits)||0;
-        const net   = Number(emp.net)||0;
+        const net   = round2(gross - round2(adv+ben));
 
         bodyRows += `<tr>
           <td class="nameCol">${emp.name||""}</td>
           <td>${pesoFormat(rate)}</td>
           <td>${days}</td>
-          <td>${ot}</td>
+          <td>${otH}</td>
           <td>${pesoFormat(gross)}</td>
           <td>${pesoFormat(adv)}</td>
           <td>${pesoFormat(ben)}</td>
@@ -504,12 +521,22 @@
         </tr>`;
       });
 
-      const totals = list.reduce((a,e)=>({
-        gross: a.gross + (Number(e.gross)||0),
-        advance: a.advance + (Number(e.advance)||0),
-        benefits: a.benefits + (Number(e.benefits)||0),
-        net: a.net + (Number(e.net)||0)
-      }), {gross:0, advance:0, benefits:0, net:0});
+      const totals = list.reduce((a,e)=>{
+        const rate = Number(e.rate)||0;
+        const days = Number(e.days)||0;
+        const otH  = Number(e.ot)||0;
+        const otPay = round2((otH * rate) / 8);
+        const gross = round2(rate * days + otPay);
+        const adv   = Number(e.advance)||0;
+        const ben   = Number(e.benefits)||0;
+        const net   = round2(gross - round2(adv+ben));
+        return {
+          gross: round2(a.gross + gross),
+          advance: round2(a.advance + adv),
+          benefits: round2(a.benefits + ben),
+          net: round2(a.net + net)
+        };
+      }, {gross:0, advance:0, benefits:0, net:0});
 
       bodyRows += `<tr>
         <td colspan="4"><strong>Total</strong></td>
@@ -555,6 +582,7 @@
     }
 
     function exportCSV(){
+      computePayroll();
       let csv="Site,Name,Rate,Days Worked,OT Hours,Gross,Cash Advance,Benefits,Net\n";
       for(let site in siteData){
         siteData[site].forEach(emp=>{
