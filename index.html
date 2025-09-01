@@ -39,7 +39,7 @@
 </head>
 <body>
   <div style="display:flex;align-items:center;justify-content:center;gap:15px;">
-    <img src="DM LOGO.png" alt="Company Logo" style="height:120px;">
+    <img src="DM LOGO.png" alt="Company Logo" style="height:150px;">
     <div>
       <h1>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h1>
     </div>
@@ -97,11 +97,11 @@
   <div id="siteInterface" class="hidden">
     <label for="perSiteSelect"><strong>Select Site:</strong></label>
     <select id="perSiteSelect" onchange="renderSiteTable(); localStorage.setItem('lastSite', this.value);"></select>
-    <button onclick="addEmployeeToSite()">Add Employee to This Site</button>
+    <button onclick="addEmployeeToSite()">Add Employee</button>
     <button onclick="deleteSite()">Delete Site</button>
-    <button onclick="printSitePayroll()">Print This Site Payroll</button>
-    <button onclick="triggerCSV()">Import CSV</button>
-    <button onclick="downloadTemplate()">Download CSV Template</button>
+    <button onclick="printSitePayroll()">Print</button>
+    <button onclick="triggerCSV()">Import</button>
+    <button onclick="downloadTemplate()">Template</button>
     <input id="csvFile" type="file" accept=".csv" class="hidden">
 
     <div id="sitePayrollArea">
@@ -752,3 +752,4 @@
   </script>
 </body>
 </html>
+
