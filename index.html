@@ -146,6 +146,10 @@
     function pesoFormat(num){
       return "₱" + (round0(num)).toLocaleString("en-PH",{minimumFractionDigits:0, maximumFractionDigits:0});
     }
+    // printing helper: show "-" for zero amounts
+    function printPeso(num){
+      return round0(num) === 0 ? "-" : pesoFormat(num);
+    }
 
     // persistence helpers
     function saveData(){
@@ -172,7 +176,6 @@
           siteData = JSON.parse(savedSiteData) || {};
         }
 
-        // rebuild site select
         const select = document.getElementById("perSiteSelect");
         select.innerHTML = "";
         sites.forEach(s=>{
@@ -180,12 +183,10 @@
           opt.value=s; opt.textContent=s; select.appendChild(opt);
         });
 
-        // restore last selected site or first site
         if(sites.length){
           select.value = lastSite && sites.includes(lastSite) ? lastSite : sites[0];
         }
 
-        // compute and render on load
         computePayroll();
         renderSiteTable();
       }catch(e){ console.error("Load failed", e); }
@@ -193,7 +194,6 @@
     document.addEventListener("DOMContentLoaded", loadData);
     window.addEventListener("beforeunload", saveData);
 
-    // save when dates change
     document.getElementById("payrollFrom").addEventListener("change", ()=>{ saveData(); computePayroll(); });
     document.getElementById("payrollTo").addEventListener("change", ()=>{ saveData(); computePayroll(); });
 
@@ -247,7 +247,6 @@
         sites=sites.filter(s=>s!==siteName);
         delete siteData[siteName];
         [...select.options].forEach(opt=>{if(opt.value===siteName) opt.remove();});
-        // choose next site if any
         if(sites.length){
           select.value = sites[0];
           localStorage.setItem('lastSite', sites[0]);
@@ -325,7 +324,6 @@
         tbody.appendChild(row);
       });
 
-      // keep last selected site
       if(site) localStorage.setItem('lastSite', site);
 
       computePayroll();
@@ -440,6 +438,7 @@
       }
     }
 
+    // dashboard printing, "-" for zero amounts
     function printSummary(){
       computePayroll();
       const sitesList = Object.keys(siteTotals || {});
@@ -455,9 +454,9 @@
         gNet   = round0(gNet + t.net);
         bodyRows += `<tr>
           <td>${site}</td>
-          <td class="num">${pesoFormat(t.gross)}</td>
-          <td class="num">${pesoFormat(t.deductions)}</td>
-          <td class="num">${pesoFormat(t.net)}</td>
+          <td class="num">${printPeso(t.gross)}</td>
+          <td class="num">${printPeso(t.deductions)}</td>
+          <td class="num">${printPeso(t.net)}</td>
           <td></td>
         </tr>`;
       });
@@ -508,9 +507,9 @@
     <tfoot>
       <tr>
         <th>GRAND TOTAL</th>
-        <th class="num">${pesoFormat(gGross)}</th>
-        <th class="num">${pesoFormat(gDed)}</th>
-        <th class="num">${pesoFormat(gNet)}</th>
+        <th class="num">${printPeso(gGross)}</th>
+        <th class="num">${printPeso(gDed)}</th>
+        <th class="num">${printPeso(gNet)}</th>
         <th></th>
       </tr>
     </tfoot>
@@ -526,6 +525,7 @@
       win.close();
     }
 
+    // per-site printing, "-" for zero amounts
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
@@ -547,13 +547,13 @@
 
         bodyRows += `<tr>
           <td class="nameCol">${emp.name||""}</td>
-          <td>${pesoFormat(rate)}</td>
+          <td>${printPeso(rate)}</td>
           <td>${days}</td>
           <td>${otH}</td>
-          <td>${pesoFormat(gross)}</td>
-          <td>${pesoFormat(adv)}</td>
-          <td>${pesoFormat(ben)}</td>
-          <td>${pesoFormat(net)}</td>
+          <td>${printPeso(gross)}</td>
+          <td>${printPeso(adv)}</td>
+          <td>${printPeso(ben)}</td>
+          <td>${printPeso(net)}</td>
           <td></td>
         </tr>`;
       });
@@ -577,10 +577,10 @@
 
       bodyRows += `<tr>
         <td colspan="4"><strong>Total</strong></td>
-        <td><strong>${pesoFormat(totals.gross)}</strong></td>
-        <td><strong>${pesoFormat(totals.advance)}</strong></td>
-        <td><strong>${pesoFormat(totals.benefits)}</strong></td>
-        <td><strong>${pesoFormat(totals.net)}</strong></td>
+        <td><strong>${printPeso(totals.gross)}</strong></td>
+        <td><strong>${printPeso(totals.advance)}</strong></td>
+        <td><strong>${printPeso(totals.benefits)}</strong></td>
+        <td><strong>${printPeso(totals.net)}</strong></td>
         <td></td>
       </tr>`;
 
