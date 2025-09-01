@@ -100,6 +100,9 @@
     <button onclick="addEmployeeToSite()">Add Employee to This Site</button>
     <button onclick="deleteSite()">Delete Site</button>
     <button onclick="printSitePayroll()">Print This Site Payroll</button>
+    <button onclick="triggerCSV()">Import CSV</button>
+    <button onclick="downloadTemplate()">Download CSV Template</button>
+    <input id="csvFile" type="file" accept=".csv" class="hidden">
 
     <div id="sitePayrollArea">
       <table id="perSiteTable">
@@ -196,6 +199,18 @@
 
     document.getElementById("payrollFrom").addEventListener("change", ()=>{ saveData(); computePayroll(); });
     document.getElementById("payrollTo").addEventListener("change", ()=>{ saveData(); computePayroll(); });
+
+    // CSV import wiring
+    document.getElementById("csvFile").addEventListener("change", handleCSVChange);
+    function triggerCSV(){ document.getElementById("csvFile").click(); }
+    function downloadTemplate(){
+      const csv = "Name,Rate/Day\nJUAN DELA CRUZ,550\nMARIA CLARA,600\n";
+      const blob = new Blob([csv], {type:"text/csv"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "employees_template.csv";
+      link.click();
+    }
 
     function getMaxDays() {
       const from=document.getElementById("payrollFrom").value;
@@ -632,6 +647,107 @@
       link.href=URL.createObjectURL(blob);
       link.download="payroll.csv";
       link.click();
+    }
+
+    // CSV parsing and import
+    function handleCSVChange(e){
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try{
+          importEmployeesFromCSV(reader.result);
+        }catch(err){
+          alert("Import failed. Please check your CSV.");
+          console.error(err);
+        }
+        e.target.value = "";
+      };
+      reader.readAsText(file);
+    }
+
+    function importEmployeesFromCSV(text){
+      const site=document.getElementById("perSiteSelect").value;
+      if(!site){ alert("Please select a site first."); return; }
+
+      const rows = parseCSV(text).filter(r=>r.length && r.join("").trim()!=="");
+      if(rows.length===0){ alert("CSV is empty."); return; }
+
+      const header = rows[0].map(h=>String(h).trim().toLowerCase());
+      let nameIdx = header.findIndex(h=>h==="name");
+      let rateIdx = header.findIndex(h=>h==="rate/day" || h==="rate" || h==="rate per day" || h==="rate perday");
+
+      let startRow = 1;
+      if(nameIdx===-1 || rateIdx===-1){
+        // try no header: assume first 2 columns
+        nameIdx = 0; rateIdx = 1;
+        startRow = 0;
+      }
+
+      const incoming = [];
+      for(let i=startRow;i<rows.length;i++){
+        const r = rows[i];
+        const name = (r[nameIdx]||"").toString().trim().toUpperCase();
+        if(!name) continue;
+        const rate = parseMoney(r[rateIdx]);
+        incoming.push({name, rate, days:"", ot:"", gross:0, advance:"", benefits:"", net:0});
+      }
+      if(incoming.length===0){ alert("No valid rows found."); return; }
+
+      if(siteData[site]?.length){
+        if(confirm("Replace current employees in this site? Click OK to replace. Cancel to append.")){
+          siteData[site] = incoming;
+        }else{
+          siteData[site].push(...incoming);
+        }
+      }else{
+        siteData[site] = incoming;
+      }
+
+      renderSiteTable();
+      computePayroll();
+      saveData();
+      alert("Import done: "+incoming.length+" employee(s).");
+    }
+
+    function parseMoney(v){
+      if(v==null) return 0;
+      const s = String(v).replace(/[^0-9.\-]/g,"");
+      const n = parseFloat(s);
+      return isNaN(n)?0:n;
+    }
+
+    // small CSV parser with quotes support
+    function parseCSV(text){
+      const out = [];
+      let row = [];
+      let cur = "";
+      let quoted = false;
+
+      for(let i=0;i<text.length;i++){
+        const c = text[i];
+        if(quoted){
+          if(c === '"'){
+            if(text[i+1] === '"'){ cur += '"'; i++; }
+            else { quoted = false; }
+          }else{
+            cur += c;
+          }
+        }else{
+          if(c === '"'){ quoted = true; }
+          else if(c === ','){ row.push(cur); cur=""; }
+          else if(c === '\n' || c === '\r'){
+            if(c === '\r' && text[i+1] === '\n') i++;
+            row.push(cur); cur="";
+            out.push(row); row=[];
+          }else{
+            cur += c;
+          }
+        }
+      }
+      row.push(cur);
+      out.push(row);
+      return out;
     }
   </script>
 </body>
