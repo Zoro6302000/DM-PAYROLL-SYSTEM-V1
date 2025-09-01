@@ -96,7 +96,7 @@
 
   <div id="siteInterface" class="hidden">
     <label for="perSiteSelect"><strong>Select Site:</strong></label>
-    <select id="perSiteSelect" onchange="renderSiteTable()"></select>
+    <select id="perSiteSelect" onchange="renderSiteTable(); localStorage.setItem('lastSite', this.value);"></select>
     <button onclick="addEmployeeToSite()">Add Employee to This Site</button>
     <button onclick="deleteSite()">Delete Site</button>
     <button onclick="printSitePayroll()">Print This Site Payroll</button>
@@ -141,41 +141,59 @@
     let sites = [];
     let siteData = {};
 
-    // helpers
+    // rounding helpers
     function round0(n){ return Math.round(Number(n)||0); }
     function pesoFormat(num){
       return "₱" + (round0(num)).toLocaleString("en-PH",{minimumFractionDigits:0, maximumFractionDigits:0});
     }
 
-    // persistence
+    // persistence helpers
     function saveData(){
-      localStorage.setItem("sites", JSON.stringify(sites));
-      localStorage.setItem("siteData", JSON.stringify(siteData));
-      localStorage.setItem("payrollFrom", document.getElementById("payrollFrom").value || "");
-      localStorage.setItem("payrollTo", document.getElementById("payrollTo").value || "");
+      try{
+        localStorage.setItem("sites", JSON.stringify(sites));
+        localStorage.setItem("siteData", JSON.stringify(siteData));
+        localStorage.setItem("payrollFrom", document.getElementById("payrollFrom").value || "");
+        localStorage.setItem("payrollTo", document.getElementById("payrollTo").value || "");
+      }catch(e){ console.error("Save failed", e); }
     }
     function loadData(){
-      const savedSites = localStorage.getItem("sites");
-      const savedSiteData = localStorage.getItem("siteData");
-      const from = localStorage.getItem("payrollFrom");
-      const to = localStorage.getItem("payrollTo");
-      if(from) document.getElementById("payrollFrom").value = from;
-      if(to) document.getElementById("payrollTo").value = to;
+      try{
+        const savedSites = localStorage.getItem("sites");
+        const savedSiteData = localStorage.getItem("siteData");
+        const from = localStorage.getItem("payrollFrom");
+        const to = localStorage.getItem("payrollTo");
+        const lastSite = localStorage.getItem("lastSite");
 
-      if(savedSites && savedSiteData){
-        sites = JSON.parse(savedSites);
-        siteData = JSON.parse(savedSiteData);
+        if(from) document.getElementById("payrollFrom").value = from;
+        if(to) document.getElementById("payrollTo").value = to;
 
+        if(savedSites && savedSiteData){
+          sites = JSON.parse(savedSites) || [];
+          siteData = JSON.parse(savedSiteData) || {};
+        }
+
+        // rebuild site select
         const select = document.getElementById("perSiteSelect");
         select.innerHTML = "";
         sites.forEach(s=>{
           const opt=document.createElement("option");
           opt.value=s; opt.textContent=s; select.appendChild(opt);
         });
+
+        // restore last selected site or first site
+        if(sites.length){
+          select.value = lastSite && sites.includes(lastSite) ? lastSite : sites[0];
+        }
+
+        // compute and render on load
         computePayroll();
-      }
+        renderSiteTable();
+      }catch(e){ console.error("Load failed", e); }
     }
     document.addEventListener("DOMContentLoaded", loadData);
+    window.addEventListener("beforeunload", saveData);
+
+    // save when dates change
     document.getElementById("payrollFrom").addEventListener("change", ()=>{ saveData(); computePayroll(); });
     document.getElementById("payrollTo").addEventListener("change", ()=>{ saveData(); computePayroll(); });
 
@@ -209,11 +227,14 @@
         select.appendChild(option);
         siteData[siteName]=[];
         select.value=siteName;
+        localStorage.setItem('lastSite', siteName);
         renderSiteTable();
+        computePayroll();
         saveData();
       } else {
         alert("Site already exists.");
         document.getElementById("perSiteSelect").value=siteName;
+        localStorage.setItem('lastSite', siteName);
         renderSiteTable();
       }
     }
@@ -226,8 +247,17 @@
         sites=sites.filter(s=>s!==siteName);
         delete siteData[siteName];
         [...select.options].forEach(opt=>{if(opt.value===siteName) opt.remove();});
+        // choose next site if any
+        if(sites.length){
+          select.value = sites[0];
+          localStorage.setItem('lastSite', sites[0]);
+        }else{
+          select.value = "";
+          localStorage.removeItem('lastSite');
+        }
         document.querySelector("#perSiteTable tbody").innerHTML="";
         document.getElementById("perSiteSummaryBody").innerHTML="";
+        computePayroll();
         saveData();
         alert("Site deleted.");
       }
@@ -239,6 +269,7 @@
       if(!siteData[site]) siteData[site]=[];
       siteData[site].push({name:"",rate:"",days:"",ot:"",gross:0,advance:"",benefits:"",net:0});
       renderSiteTable();
+      computePayroll();
       saveData();
     }
 
@@ -256,6 +287,7 @@
       const tbody=document.querySelector("#perSiteTable tbody");
       tbody.innerHTML="";
       if(!site||!siteData[site]) return;
+
       siteData[site].forEach((emp,idx)=>{
         const rate = Number(emp.rate)||0;
         const days = Number(emp.days)||0;
@@ -292,7 +324,12 @@
         `;
         tbody.appendChild(row);
       });
+
+      // keep last selected site
+      if(site) localStorage.setItem('lastSite', site);
+
       computePayroll();
+      saveData();
     }
 
     function focusNext(e,input){
@@ -303,6 +340,7 @@
         if(idx>=0 && idx<inputs.length-1){inputs[idx+1].focus();}
         else{input.blur();}
         computePayroll();
+        saveData();
       }
     }
 
@@ -355,7 +393,6 @@
       updateDashboardSummary();
       updatePerSiteSummary();
       refreshTables();
-      saveData();
     }
 
     function refreshTables(){
@@ -403,10 +440,8 @@
       }
     }
 
-    // improved dashboard printing
     function printSummary(){
       computePayroll();
-
       const sitesList = Object.keys(siteTotals || {});
       if(sitesList.length === 0){ alert("No data to print."); return; }
 
@@ -491,11 +526,9 @@
       win.close();
     }
 
-    // per-site printing with aligned totals and no-wrap name
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
-
       computePayroll();
 
       const list = Array.isArray(siteData[site]) ? siteData[site] : [];
