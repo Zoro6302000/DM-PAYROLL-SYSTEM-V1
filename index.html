@@ -493,8 +493,7 @@
       }
     }
 
-    /* ---------- PRINTING ---------- */
-
+    /* ---------- PRINT: SUMMARY ---------- */
     function printSummary(){
       computePayroll();
 
@@ -529,6 +528,10 @@
 <!DOCTYPE html><html><head>
 <meta charset="utf-8"><title>Payroll Summary</title>
 <style>
+  @media print {
+    thead { display: table-header-group; }
+    tfoot { display: table-row-group; }
+  }
   @page { size: A4; margin: 12mm; }
   body { margin: 0; font-family: Arial, sans-serif; font-size: 12px; }
   .head { display:flex; align-items:center; justify-content:space-between; }
@@ -537,10 +540,10 @@
   h2, h3 { margin: 4px 0; }
   .meta { text-align: left; margin: 6px 0 10px; }
   table { border-collapse: collapse; width: 100%; margin-top: 8px; }
-  th, td { border: 1px solid #000; padding: 6px; }
+  th, td { border: 1px solid #000; padding: 6px; page-break-inside: avoid; }
   th { background: #000; color: #fff; }
   td.num, th.num { text-align: right; }
-  tfoot th { text-align: right; }
+  tfoot tr.total-row th { font-weight:bold; background:#f9f9f9; border-top:2px solid #000; }
   .sig { margin-top: 24px; display: flex; gap: 40px; justify-content: space-between; }
   .sig div { width: 48%; text-align: center; }
   .sig u { display: inline-block; min-width: 220px; }
@@ -567,7 +570,7 @@
     </thead>
     <tbody>${bodyRows}</tbody>
     <tfoot>
-      <tr>
+      <tr class="total-row">
         <th>GRAND TOTAL</th>
         <th class="num">${printPeso(gGross)}</th>
         <th class="num">${printPeso(gDed)}</th>
@@ -601,6 +604,7 @@
       else win.addEventListener('load', tryPrint);
     }
 
+    /* ---------- PRINT: PER SITE (includes OT PAY total) ---------- */
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
@@ -616,15 +620,21 @@
         if(!ROLE_ORDER.includes(s)) s="LABOR";
         return s;
       };
+      const fmtHalf = (x)=>{
+        const v = Math.round((Number(x)||0)*2)/2;
+        return Number.isInteger(v) ? String(v) : v.toFixed(1);
+      };
 
       let bodyRows = "";
+      let rowCounter = 1;
+
       ROLE_ORDER.forEach(role=>{
         const group = list.filter(e=>normRole(e.role)===role);
         if(!group.length) return;
 
         bodyRows += `<tr class="group"><td colspan="12"><strong>${role}</strong></td></tr>`;
 
-        group.forEach((emp,i)=>{
+        group.forEach((emp)=>{
           const rate = Number(emp.rate)||0;
           const days = Number(emp.days)||0;
           const otH  = Number(emp.ot)||0;
@@ -636,23 +646,29 @@
           const ben     = Math.round(Number(emp.benefits)||0);
           const net     = Math.round(gross - Math.round(adv+ben));
 
+          const n = rowCounter++;
+
           bodyRows += `<tr>
-            <td class="rownum">${i+1}</td>
-            <td class="nameCol">${(emp.name||"")}</td>
+            <td class="rownum">${n}</td>
+            <td class="nameCol">${emp.name||""}</td>
             <td>${printPeso(rate)}</td>
-            <td>${days}</td>
+            <td>${fmtHalf(days)}</td>
             <td>${printPeso(basePay)}</td>
-            <td>${otH}</td>
+            <td>${fmtHalf(otH)}</td>
             <td>${printPeso(otPay)}</td>
             <td>${printPeso(gross)}</td>
             <td>${printPeso(adv)}</td>
             <td>${printPeso(ben)}</td>
             <td>${printPeso(net)}</td>
-            <td class="sigCell"><span class="sigNum">${i+1}</span></td>
+            <td class="sigCell">
+              <span class="sigNum left">${n}</span>
+              <span class="sigNum right">${n}</span>
+            </td>
           </tr>`;
         });
       });
 
+      // totals include OT PAY
       const totals = list.reduce((a,e)=>{
         const rate = Number(e.rate)||0;
         const days = Number(e.days)||0;
@@ -664,12 +680,16 @@
         const ben     = Math.round(Number(e.benefits)||0);
         const net     = Math.round(gross - Math.round(adv+ben));
         return {
-          gross: Math.round(a.gross + gross),
-          advance: Math.round(a.advance + adv),
-          benefits: Math.round(a.benefits + ben),
-          net: Math.round(a.net + net)
+          days: a.days + days,
+          base: a.base + basePay,
+          otH:  a.otH + otH,
+          otPay: a.otPay + otPay,
+          gross: a.gross + gross,
+          advance: a.advance + adv,
+          benefits: a.benefits + ben,
+          net: a.net + net
         };
-      }, {gross:0, advance:0, benefits:0, net:0});
+      }, {days:0, base:0, otH:0, otPay:0, gross:0, advance:0, benefits:0, net:0});
 
       const from = document.getElementById("payrollFrom").value || "";
       const to   = document.getElementById("payrollTo").value || "";
@@ -682,18 +702,25 @@
 <!DOCTYPE html><html><head>
 <meta charset="utf-8"><title>${site} Payroll</title>
 <style>
+  @media print {
+    thead { display: table-header-group; }
+    tfoot { display: table-row-group; }
+  }
   body { margin: 10px; font-family: Arial, sans-serif; }
   .head { display:flex; align-items:center; justify-content:space-between; }
   .head .titles { text-align:left; }
   .head img.logo { height:110px; width:auto; object-fit:contain; }
   h2, h3 { margin: 5px 0; }
   table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-  th, td { border: 1px solid #000; padding: 5px; text-align: center; }
+  th, td { border: 1px solid #000; padding: 5px; text-align: center; page-break-inside: avoid; }
   th.nameCol, td.nameCol { white-space: nowrap; word-break: keep-all; hyphens: none; text-align:left; }
   td.rownum { width:28px; text-align:center; }
   td.sigCell { height:32px; position:relative; }
-  .sigNum { position:absolute; top:4px; right:6px; font-size:10px; font-weight:bold; }
+  .sigNum { position:absolute; top:4px; font-size:10px; font-weight:bold; }
+  .sigNum.left { left:6px; }
+  .sigNum.right { right:6px; }
   .group td { text-align:left; font-weight:bold; background:#f0f0f0; }
+  tr.total-row td { font-weight:bold; background:#f9f9f9; border-top:2px solid #000; }
   .sig { margin-top: 20px; display:flex; gap:20px; justify-content: space-between; }
   .sig div { width: 32%; text-align:center; }
   .sig u { display:inline-block; min-width:220px; }
@@ -727,13 +754,19 @@
     </thead>
     <tbody>
       ${bodyRows}
-      <tr>
-        <td colspan="7"><strong>Total</strong></td>
-        <td><strong>${printPeso(totals.gross)}</strong></td>
-        <td><strong>${printPeso(totals.advance)}</strong></td>
-        <td><strong>${printPeso(totals.benefits)}</strong></td>
-        <td><strong>${printPeso(totals.net)}</strong></td>
-        <td class="sigCell"></td>
+      <tr class="total-row">
+        <td></td>
+        <td>Total</td>
+        <td>-</td>
+        <td>${fmtHalf(totals.days)}</td>
+        <td>${printPeso(totals.base)}</td>
+        <td>${fmtHalf(totals.otH)}</td>
+        <td>${printPeso(totals.otPay)}</td>
+        <td>${printPeso(totals.gross)}</td>
+        <td>${printPeso(totals.advance)}</td>
+        <td>${printPeso(totals.benefits)}</td>
+        <td>${printPeso(totals.net)}</td>
+        <td></td>
       </tr>
     </tbody>
   </table>
@@ -763,7 +796,6 @@
     }
 
     /* ---------- CSV ---------- */
-
     function exportCSV(){
       computePayroll();
       let csv="Site,Name,Role,Rate,Days Worked,OT Hours,Gross,Cash Advance,Benefits,Net\n";
