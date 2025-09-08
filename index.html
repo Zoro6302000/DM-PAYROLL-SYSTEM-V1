@@ -493,7 +493,7 @@
       }
     }
 
-    /* ---------- PRINT: SUMMARY ---------- */
+    /* PRINT: SUMMARY */
     function printSummary(){
       computePayroll();
 
@@ -528,10 +528,7 @@
 <!DOCTYPE html><html><head>
 <meta charset="utf-8"><title>Payroll Summary</title>
 <style>
-  @media print {
-    thead { display: table-header-group; }
-    tfoot { display: table-row-group; }
-  }
+  @media print { thead { display: table-header-group; } tfoot { display: table-row-group; } }
   @page { size: A4; margin: 12mm; }
   body { margin: 0; font-family: Arial, sans-serif; font-size: 12px; }
   .head { display:flex; align-items:center; justify-content:space-between; }
@@ -588,10 +585,7 @@
 
       const win = window.open("", "_blank");
       if(!win){ alert("Pop-up blocked. Allow pop-ups to print."); return; }
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
-
+      win.document.open(); win.document.write(html); win.document.close();
       const tryPrint = () => {
         try {
           const img = win.document.getElementById('plogo');
@@ -604,7 +598,7 @@
       else win.addEventListener('load', tryPrint);
     }
 
-    /* ---------- PRINT: PER SITE (includes OT PAY total) ---------- */
+    /* PRINT: PER SITE — numbering resets per role, single number on left signature */
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
@@ -626,13 +620,14 @@
       };
 
       let bodyRows = "";
-      let rowCounter = 1;
 
       ROLE_ORDER.forEach(role=>{
         const group = list.filter(e=>normRole(e.role)===role);
         if(!group.length) return;
 
         bodyRows += `<tr class="group"><td colspan="12"><strong>${role}</strong></td></tr>`;
+
+        let roleNum = 1;
 
         group.forEach((emp)=>{
           const rate = Number(emp.rate)||0;
@@ -646,7 +641,7 @@
           const ben     = Math.round(Number(emp.benefits)||0);
           const net     = Math.round(gross - Math.round(adv+ben));
 
-          const n = rowCounter++;
+          const n = roleNum++;
 
           bodyRows += `<tr>
             <td class="rownum">${n}</td>
@@ -662,13 +657,11 @@
             <td>${printPeso(net)}</td>
             <td class="sigCell">
               <span class="sigNum left">${n}</span>
-              <span class="sigNum right">${n}</span>
             </td>
           </tr>`;
         });
       });
 
-      // totals include OT PAY
       const totals = list.reduce((a,e)=>{
         const rate = Number(e.rate)||0;
         const days = Number(e.days)||0;
@@ -702,10 +695,7 @@
 <!DOCTYPE html><html><head>
 <meta charset="utf-8"><title>${site} Payroll</title>
 <style>
-  @media print {
-    thead { display: table-header-group; }
-    tfoot { display: table-row-group; }
-  }
+  @media print { thead { display: table-header-group; } tfoot { display: table-row-group; } }
   body { margin: 10px; font-family: Arial, sans-serif; }
   .head { display:flex; align-items:center; justify-content:space-between; }
   .head .titles { text-align:left; }
@@ -718,7 +708,6 @@
   td.sigCell { height:32px; position:relative; }
   .sigNum { position:absolute; top:4px; font-size:10px; font-weight:bold; }
   .sigNum.left { left:6px; }
-  .sigNum.right { right:6px; }
   .group td { text-align:left; font-weight:bold; background:#f0f0f0; }
   tr.total-row td { font-weight:bold; background:#f9f9f9; border-top:2px solid #000; }
   .sig { margin-top: 20px; display:flex; gap:20px; justify-content: space-between; }
@@ -779,9 +768,7 @@
 
       const win = window.open("", "_blank");
       if(!win){ alert("Pop-up blocked. Allow pop-ups to print."); return; }
-      win.document.open();
-      win.document.write(html);
-      win.document.close();
+      win.document.open(); win.document.write(html); win.document.close();
 
       const tryPrint = () => {
         try {
@@ -795,7 +782,7 @@
       else win.addEventListener('load', tryPrint);
     }
 
-    /* ---------- CSV ---------- */
+    /* CSV */
     function exportCSV(){
       computePayroll();
       let csv="Site,Name,Role,Rate,Days Worked,OT Hours,Gross,Cash Advance,Benefits,Net\n";
