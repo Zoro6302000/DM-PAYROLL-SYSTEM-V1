@@ -1,48 +1,37 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>D.M. MALIWANAG BUILDERS AND ENTERPRISES - Payroll System</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
     h1 { margin:0; font-size:32px; font-weight:bold; text-align:left; }
     h2 { margin:0; font-size:24px; font-weight:normal; text-align:center; }
-    .by { text-align:center; font-size:16px; margin-bottom:15px; }
-    .date { text-align: center; margin: 20px 0; font-weight: bold; }
-    nav { text-align: center; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #fff; }
+    .date { text-align: center; margin: 16px 0; font-weight: bold; }
+    .sigs-bar { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin-bottom:10px; }
+    .sigs-bar label { font-size:12px; font-weight:bold; }
+    .sigs-bar input { padding:4px 6px; width:220px; text-transform:uppercase; }
+    nav { text-align: center; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; background: #fff; }
     th, td { padding: 8px; border: 1px solid #ccc; text-align: center; }
     th { background: #333; color: #fff; }
     input, select { padding: 4px; }
-    input[type=text] { text-transform: uppercase; width: 250px; }
+    input[type=text] { text-transform: uppercase; width: 240px; }
     input[type=number] { width: 100px; text-align: center; }
     .nameInput { width: 100%; min-width:200px; text-transform: uppercase; box-sizing: border-box; }
-    button {
-      padding: 10px 18px;
-      background: linear-gradient(90deg, #004aad, #0073e6);
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: bold;
-      margin: 4px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      transition: all 0.2s ease;
-    }
+    button { padding: 10px 16px; background: linear-gradient(90deg, #004aad, #0073e6); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin: 4px; }
     button.small { padding: 4px 8px; border-radius:6px; font-weight:600; }
-    button:hover { background: linear-gradient(90deg, #0073e6, #004aad); transform: translateY(-2px); }
+    button:hover { background: linear-gradient(90deg, #0073e6, #004aad); }
     .danger { background:#e53935; }
     .danger:hover { background:#c62828; }
-    .hidden { display: none; }
-    #summary { margin-top: 30px; background: #fff; padding: 10px; border: 1px solid #ccc; }
+    .hidden { display:none; }
+    #summary { margin-top: 18px; background: #fff; padding: 10px; border: 1px solid #ccc; }
   </style>
 </head>
 <body>
   <div style="display:flex;align-items:center;justify-content:center;gap:15px;">
-    <img src="DM LOGO.png" alt="Company Logo" style="height:150px;">
-    <div>
-      <h1>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h1>
-    </div>
+    <img id="mainLogo" src="DM%20LOGO.png" alt="Company Logo" style="height:150px;">
+    <div><h1>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h1></div>
   </div>
 
   <div style="text-align:center;margin-top:5px;">
@@ -56,15 +45,25 @@
     <input type="date" id="payrollTo">
   </div>
 
+  <div class="sigs-bar">
+    <label>Prepared by:</label>
+    <input id="preparedByInput" type="text" placeholder="TYPE NAME">
+    <label>Checked by:</label>
+    <input id="checkedByInput" type="text" placeholder="TYPE NAME">
+    <label>Approved by:</label>
+    <input id="approvedByInput" type="text" value="DANA MALIWANAG">
+  </div>
+
   <nav>
     <button onclick="showInterface('dashboard')">Dashboard</button>
     <button onclick="showInterface('site')">Per Site Payroll</button>
     <button onclick="addNewSite()">Add New Site</button>
   </nav>
 
+  <!-- DASHBOARD -->
   <div id="dashboardInterface">
     <h2 style="text-align:center;">Welcome to the Payroll System</h2>
-    <p style="text-align:center;">This dashboard provides an overview of all projects and payroll summaries.</p>
+    <p style="text-align:center;">Overview of projects and payroll summaries.</p>
     <div id="summary">
       <h3>Payroll Summary by Site</h3>
       <table id="siteSummary">
@@ -93,6 +92,7 @@
     </div>
   </div>
 
+  <!-- PER SITE -->
   <div id="siteInterface" class="hidden">
     <label for="perSiteSelect"><strong>Select Site:</strong></label>
     <select id="perSiteSelect" onchange="renderSiteTable(); localStorage.setItem('lastSite', this.value);"></select>
@@ -108,9 +108,12 @@
         <thead>
           <tr>
             <th>Name</th>
+            <th>Role</th>
             <th>Rate/Day</th>
             <th>Days Worked</th>
+            <th>PAY BEFORE OT</th>
             <th>OT Hours</th>
+            <th>OT PAY</th>
             <th>Gross Pay</th>
             <th>Cash Advance</th>
             <th>Benefits</th>
@@ -139,27 +142,58 @@
   </div>
 
   <script>
+    const ROLE_OPTIONS = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR"];
+
     let siteTotals = {};
     let sites = [];
     let siteData = {};
 
-    // rounding helpers
     function round0(n){ return Math.round(Number(n)||0); }
-    function pesoFormat(num){
-      return "₱" + (round0(num)).toLocaleString("en-PH",{minimumFractionDigits:0, maximumFractionDigits:0});
+    function pesoFormat(num){ return "₱" + (round0(num)).toLocaleString("en-PH",{minimumFractionDigits:0, maximumFractionDigits:0}); }
+    function printPeso(num){ return round0(num) === 0 ? "-" : pesoFormat(num); }
+    function cleanRole(v){
+      if(!v) return "LABOR";
+      const s = String(v).trim().toUpperCase().replace(/\s+/g," ");
+      if(s==="SEMI SKILLED" || s==="SEMISKILLED") return "SEMI-SKILLED";
+      if(ROLE_OPTIONS.includes(s)) return s;
+      return "LABOR";
     }
-    // printing helper: show "-" for zero amounts
-    function printPeso(num){
-      return round0(num) === 0 ? "-" : pesoFormat(num);
+    function getLogoSrc(){
+      const img = document.getElementById("mainLogo");
+      const raw = (img && (img.getAttribute("src") || img.src)) || "DM%20LOGO.png";
+      try { return new URL(raw, window.location.href).href; }
+      catch { return (raw + ""); }
     }
 
-    // persistence helpers
+    document.addEventListener("DOMContentLoaded", loadData);
+    window.addEventListener("beforeunload", saveData);
+
+    document.getElementById("payrollFrom").addEventListener("change", ()=>{ saveData(); computePayroll(); });
+    document.getElementById("payrollTo").addEventListener("change", ()=>{ saveData(); computePayroll(); });
+    document.getElementById("preparedByInput").addEventListener("input", saveData);
+    document.getElementById("checkedByInput").addEventListener("input", saveData);
+    document.getElementById("approvedByInput").addEventListener("input", saveData);
+
+    document.getElementById("csvFile").addEventListener("change", handleCSVChange);
+    function triggerCSV(){ document.getElementById("csvFile").click(); }
+    function downloadTemplate(){
+      const csv = "Name,Role,Rate/Day\nJUAN DELA CRUZ,SKILLED,550\nMARIA CLARA,LABOR,600\n";
+      const blob = new Blob([csv], {type:"text/csv"});
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "employees_template.csv";
+      link.click();
+    }
+
     function saveData(){
       try{
         localStorage.setItem("sites", JSON.stringify(sites));
         localStorage.setItem("siteData", JSON.stringify(siteData));
         localStorage.setItem("payrollFrom", document.getElementById("payrollFrom").value || "");
         localStorage.setItem("payrollTo", document.getElementById("payrollTo").value || "");
+        localStorage.setItem("preparedBy", (document.getElementById("preparedByInput").value||"").toUpperCase());
+        localStorage.setItem("checkedBy", (document.getElementById("checkedByInput").value||"").toUpperCase());
+        localStorage.setItem("approvedBy", (document.getElementById("approvedByInput").value||"").toUpperCase());
       }catch(e){ console.error("Save failed", e); }
     }
     function loadData(){
@@ -178,6 +212,10 @@
           siteData = JSON.parse(savedSiteData) || {};
         }
 
+        document.getElementById("preparedByInput").value = (localStorage.getItem("preparedBy")||"");
+        document.getElementById("checkedByInput").value  = (localStorage.getItem("checkedBy")||"");
+        document.getElementById("approvedByInput").value = (localStorage.getItem("approvedBy")||"DANA MALIWANAG");
+
         const select = document.getElementById("perSiteSelect");
         select.innerHTML = "";
         sites.forEach(s=>{
@@ -192,23 +230,6 @@
         computePayroll();
         renderSiteTable();
       }catch(e){ console.error("Load failed", e); }
-    }
-    document.addEventListener("DOMContentLoaded", loadData);
-    window.addEventListener("beforeunload", saveData);
-
-    document.getElementById("payrollFrom").addEventListener("change", ()=>{ saveData(); computePayroll(); });
-    document.getElementById("payrollTo").addEventListener("change", ()=>{ saveData(); computePayroll(); });
-
-    // CSV import wiring
-    document.getElementById("csvFile").addEventListener("change", handleCSVChange);
-    function triggerCSV(){ document.getElementById("csvFile").click(); }
-    function downloadTemplate(){
-      const csv = "Name,Rate/Day\nJUAN DELA CRUZ,550\nMARIA CLARA,600\n";
-      const blob = new Blob([csv], {type:"text/csv"});
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "employees_template.csv";
-      link.click();
     }
 
     function getMaxDays() {
@@ -280,7 +301,7 @@
       const site=document.getElementById("perSiteSelect").value;
       if(!site){alert("Please add or select a site first.");return;}
       if(!siteData[site]) siteData[site]=[];
-      siteData[site].push({name:"",rate:"",days:"",ot:"",gross:0,advance:"",benefits:"",net:0});
+      siteData[site].push({name:"",role:"LABOR",rate:"",days:"",ot:"",basePay:0,otPay:0,gross:0,advance:"",benefits:"",net:0});
       renderSiteTable();
       computePayroll();
       saveData();
@@ -302,28 +323,41 @@
       if(!site||!siteData[site]) return;
 
       siteData[site].forEach((emp,idx)=>{
+        const role = cleanRole(emp.role||"LABOR");
+        emp.role = role;
+
         const rate = Number(emp.rate)||0;
         const days = Number(emp.days)||0;
         const otH  = Number(emp.ot)||0;
-        const otPay = round0((otH * rate) / 8);
-        const gross = round0(rate * days + otPay);
+
+        const basePay = round0(rate * days);
+        const otPay   = round0((otH * rate) / 8);
+        const gross   = round0(basePay + otPay);
         const deductions = round0((Number(emp.advance)||0) + (Number(emp.benefits)||0));
         const net = round0(gross - deductions);
-        emp.gross=gross; emp.net=net;
+
+        emp.basePay=basePay; emp.otPay=otPay; emp.gross=gross; emp.net=net;
+
+        const roleSelect = `<select onchange="updateEmployee('${site}',${idx},'role',this.value)">
+          ${["FOREMAN","SKILLED","SEMI-SKILLED","LABOR"].map(opt=>`<option value="${opt}" ${opt===role?'selected':''}>${opt}</option>`).join('')}
+        </select>`;
 
         const row=document.createElement("tr");
         row.innerHTML=`
           <td><input type="text" class="nameInput" style="width:auto;min-width:200px;" value="${emp.name||""}"
             oninput="this.value=this.value.toUpperCase(); updateEmployee('${site}',${idx},'name',this.value)"
             onkeydown="focusNext(event,this)" placeholder="NAME"></td>
+          <td>${roleSelect}</td>
           <td><input type="number" value="${emp.rate?emp.rate:''}" class="rate" step="0.01"
             oninput="updateEmployee('${site}',${idx},'rate',this.value)" onkeydown="focusNext(event,this)" placeholder="₱"></td>
           <td><input type="number" value="${emp.days?emp.days:''}" class="days" step="0.5"
             onblur="validateHalfStep(this,'${site}',${idx},'days')"
             onkeydown="focusNext(event,this)" placeholder="Days (Max ${getMaxDays()})"></td>
+          <td class="basepay">${pesoFormat(emp.basePay)}</td>
           <td><input type="number" value="${emp.ot?emp.ot:''}" class="ot" step="0.5"
             onblur="validateHalfStep(this,'${site}',${idx},'ot')"
             onkeydown="focusNext(event,this)" placeholder="OT"></td>
+          <td class="otpay">${pesoFormat(emp.otPay)}</td>
           <td class="gross">${pesoFormat(emp.gross)}</td>
           <td><input type="number" value="${emp.advance?emp.advance:''}" class="advance" step="0.01"
             oninput="updateEmployee('${site}',${idx},'advance',this.value)" onkeydown="focusNext(event,this)" placeholder="₱"></td>
@@ -331,9 +365,7 @@
             oninput="updateEmployee('${site}',${idx},'benefits',this.value)" onkeydown="focusNext(event,this)" placeholder="₱"></td>
           <td class="net">${pesoFormat(emp.net)}</td>
           <td style="height:40px;"></td>
-          <td>
-            <button class="small danger" onclick="deleteEmployee('${site}',${idx})">Delete</button>
-          </td>
+          <td><button class="small danger" onclick="deleteEmployee('${site}',${idx})">Delete</button></td>
         `;
         tbody.appendChild(row);
       });
@@ -375,10 +407,14 @@
     }
 
     function updateEmployee(site,idx,field,value){
-      let num=parseFloat(value);
-      if(isNaN(num)) num=0;
-      if(["advance","benefits","rate"].includes(field)&&num<0) num=0;
-      siteData[site][idx][field]=(field==="name"?value:num);
+      if(field==="role"){
+        siteData[site][idx].role = cleanRole(value);
+      }else{
+        let num=parseFloat(value);
+        if(isNaN(num)) num=0;
+        if(["advance","benefits","rate"].includes(field)&&num<0) num=0;
+        siteData[site][idx][field]=(field==="name"?value:num);
+      }
       computePayroll();
       saveData();
     }
@@ -390,11 +426,14 @@
           const rate = Number(emp.rate)||0;
           const days = Number(emp.days)||0;
           const otH  = Number(emp.ot)||0;
-          const otPay = round0((otH * rate) / 8);
-          const gross = round0(rate * days + otPay);
+
+          const basePay = round0(rate * days);
+          const otPay   = round0((otH * rate) / 8);
+          const gross   = round0(basePay + otPay);
           const deductions = round0((Number(emp.advance)||0) + (Number(emp.benefits)||0));
           const net = round0(gross - deductions);
-          emp.gross=gross; emp.net=net;
+
+          emp.basePay=basePay; emp.otPay=otPay; emp.gross=gross; emp.net=net;
 
           if(!siteTotals[site]) siteTotals[site]={gross:0,deductions:0,net:0};
           siteTotals[site].gross = round0(siteTotals[site].gross + gross);
@@ -412,6 +451,8 @@
       if(site&&siteData[site]){
         const rows=document.querySelectorAll("#perSiteTable tbody tr");
         rows.forEach((row,idx)=>{
+          row.querySelector(".basepay").textContent=pesoFormat(siteData[site][idx].basePay||0);
+          row.querySelector(".otpay").textContent=pesoFormat(siteData[site][idx].otPay||0);
           row.querySelector(".gross").textContent=pesoFormat(siteData[site][idx].gross||0);
           row.querySelector(".net").textContent=pesoFormat(siteData[site][idx].net||0);
         });
@@ -452,9 +493,11 @@
       }
     }
 
-    // dashboard printing, "-" for zero amounts
+    /* ---------- PRINTING ---------- */
+
     function printSummary(){
       computePayroll();
+
       const sitesList = Object.keys(siteTotals || {});
       if(sitesList.length === 0){ alert("No data to print."); return; }
 
@@ -463,9 +506,9 @@
 
       sitesList.forEach(site=>{
         const t = siteTotals[site] || {gross:0,deductions:0,net:0};
-        gGross = round0(gGross + t.gross);
-        gDed   = round0(gDed + t.deductions);
-        gNet   = round0(gNet + t.net);
+        gGross = Math.round(gGross + t.gross);
+        gDed   = Math.round(gDed + t.deductions);
+        gNet   = Math.round(gNet + t.net);
         bodyRows += `<tr>
           <td>${site}</td>
           <td class="num">${printPeso(t.gross)}</td>
@@ -478,33 +521,38 @@
       const from = document.getElementById("payrollFrom").value || "";
       const to   = document.getElementById("payrollTo").value || "";
       const printed = new Date().toLocaleDateString("en-PH");
+      const preparedBy = (localStorage.getItem("preparedBy")||"");
+      const approvedBy = (localStorage.getItem("approvedBy")||"DANA MALIWANAG");
+      const logoSrc = getLogoSrc();
 
-      const win = window.open("", "_blank");
-      win.document.write(`<html>
-<head>
-  <title>Payroll Summary</title>
-  <style>
-    @page { size: A4; margin: 12mm; }
-    @media print {
-      body { margin: 0; font-family: Arial, sans-serif; font-size: 12px; }
-      h2, h3 { margin: 4px 0; text-align: center; }
-      .meta { text-align: center; margin: 6px 0 10px; }
-      table { border-collapse: collapse; width: 100%; margin-top: 8px; }
-      th, td { border: 1px solid #000; padding: 6px; }
-      th { background: #000; color: #fff; }
-      td.num, th.num { text-align: right; }
-      tfoot th { text-align: right; }
-      .sig { margin-top: 24px; display: flex; gap: 40px; justify-content: space-between; }
-      .sig div { width: 48%; text-align: center; }
-      .sig u { display: inline-block; min-width: 220px; }
-    }
-  </style>
-</head>
-<body>
-  <h2>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h2>
-  <h3>Payroll Summary by Site</h3>
-  <div class="meta">
-    Payroll Period: ${from} to ${to} • Printed: ${printed}
+      const html = `
+<!DOCTYPE html><html><head>
+<meta charset="utf-8"><title>Payroll Summary</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  body { margin: 0; font-family: Arial, sans-serif; font-size: 12px; }
+  .head { display:flex; align-items:center; justify-content:space-between; }
+  .head .titles { text-align:left; }
+  .head img.logo { height:110px; width:auto; object-fit:contain; }
+  h2, h3 { margin: 4px 0; }
+  .meta { text-align: left; margin: 6px 0 10px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+  th, td { border: 1px solid #000; padding: 6px; }
+  th { background: #000; color: #fff; }
+  td.num, th.num { text-align: right; }
+  tfoot th { text-align: right; }
+  .sig { margin-top: 24px; display: flex; gap: 40px; justify-content: space-between; }
+  .sig div { width: 48%; text-align: center; }
+  .sig u { display: inline-block; min-width: 220px; }
+</style>
+</head><body>
+  <div class="head">
+    <div class="titles">
+      <h2>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h2>
+      <h3>Payroll Summary by Site</h3>
+      <div class="meta">Payroll Period: ${from} to ${to} • Printed: ${printed}</div>
+    </div>
+    <img id="plogo" class="logo" src="${logoSrc}" alt="Logo">
   </div>
 
   <table>
@@ -530,16 +578,29 @@
   </table>
 
   <div class="sig">
-    <div>Prepared by:<br><br><u>${(localStorage.getItem("preparedBy")||"")}</u><br>Signature over printed name</div>
-    <div>Approved by:<br><br><u>DANA MALIWANAG</u><br>Signature over printed name</div>
+    <div>Prepared by:<br><br><u>${preparedBy}</u><br>Signature over printed name</div>
+    <div>Approved by:<br><br><u>${approvedBy}</u><br>Signature over printed name</div>
   </div>
-</body>
-</html>`);
-      win.print();
-      win.close();
+</body></html>`;
+
+      const win = window.open("", "_blank");
+      if(!win){ alert("Pop-up blocked. Allow pop-ups to print."); return; }
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+
+      const tryPrint = () => {
+        try {
+          const img = win.document.getElementById('plogo');
+          if(!img || img.complete){ win.focus(); win.print(); return; }
+          img.addEventListener('load', ()=>{ win.focus(); win.print(); });
+          img.addEventListener('error', ()=>{ win.focus(); win.print(); });
+        } catch {}
+      };
+      if(win.document.readyState === 'complete') tryPrint();
+      else win.addEventListener('load', tryPrint);
     }
 
-    // per-site printing, "-" for zero amounts
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
@@ -548,97 +609,153 @@
       const list = Array.isArray(siteData[site]) ? siteData[site] : [];
       if(list.length === 0){ alert("No employees in this site."); return; }
 
-      let bodyRows = "";
-      list.forEach(emp=>{
-        const rate = Number(emp.rate)||0;
-        const days = Number(emp.days)||0;
-        const otH  = Number(emp.ot)||0;
-        const otPay = round0((otH * rate) / 8);
-        const gross = round0(rate * days + otPay);
-        const adv   = round0(Number(emp.advance)||0);
-        const ben   = round0(Number(emp.benefits)||0);
-        const net   = round0(gross - round0(adv+ben));
+      const ROLE_ORDER = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR"];
+      const normRole = (r)=>{
+        let s = (r||"LABOR").toString().trim().toUpperCase().replace(/\s+/g," ");
+        if(s==="SEMI SKILLED" || s==="SEMISKILLED") s="SEMI-SKILLED";
+        if(!ROLE_ORDER.includes(s)) s="LABOR";
+        return s;
+      };
 
-        bodyRows += `<tr>
-          <td class="nameCol">${emp.name||""}</td>
-          <td>${printPeso(rate)}</td>
-          <td>${days}</td>
-          <td>${otH}</td>
-          <td>${printPeso(gross)}</td>
-          <td>${printPeso(adv)}</td>
-          <td>${printPeso(ben)}</td>
-          <td>${printPeso(net)}</td>
-          <td></td>
-        </tr>`;
+      let bodyRows = "";
+      ROLE_ORDER.forEach(role=>{
+        const group = list.filter(e=>normRole(e.role)===role);
+        if(!group.length) return;
+
+        bodyRows += `<tr class="group"><td colspan="11"><strong>${role}</strong></td></tr>`;
+
+        group.forEach((emp,i)=>{
+          const rate = Number(emp.rate)||0;
+          const days = Number(emp.days)||0;
+          const otH  = Number(emp.ot)||0;
+
+          const basePay = Math.round(rate * days);
+          const otPay   = Math.round((otH * rate) / 8);
+          const gross   = Math.round(basePay + otPay);
+          const adv     = Math.round(Number(emp.advance)||0);
+          const ben     = Math.round(Number(emp.benefits)||0);
+          const net     = Math.round(gross - Math.round(adv+ben));
+
+          bodyRows += `<tr>
+            <td class="nameCol">${i+1}. ${(emp.name||"")}</td>
+            <td>${printPeso(rate)}</td>
+            <td>${days}</td>
+            <td>${printPeso(basePay)}</td>
+            <td>${otH}</td>
+            <td>${printPeso(otPay)}</td>
+            <td>${printPeso(gross)}</td>
+            <td>${printPeso(adv)}</td>
+            <td>${printPeso(ben)}</td>
+            <td>${printPeso(net)}</td>
+            <td></td>
+          </tr>`;
+        });
       });
 
       const totals = list.reduce((a,e)=>{
         const rate = Number(e.rate)||0;
         const days = Number(e.days)||0;
         const otH  = Number(e.ot)||0;
-        const otPay = round0((otH * rate) / 8);
-        const gross = round0(rate * days + otPay);
-        const adv   = round0(Number(e.advance)||0);
-        const ben   = round0(Number(e.benefits)||0);
-        const net   = round0(gross - round0(adv+ben));
+        const basePay = Math.round(rate * days);
+        const otPay   = Math.round((otH * rate) / 8);
+        const gross   = Math.round(basePay + otPay);
+        const adv     = Math.round(Number(e.advance)||0);
+        const ben     = Math.round(Number(e.benefits)||0);
+        const net     = Math.round(gross - Math.round(adv+ben));
         return {
-          gross: round0(a.gross + gross),
-          advance: round0(a.advance + adv),
-          benefits: round0(a.benefits + ben),
-          net: round0(a.net + net)
+          gross: Math.round(a.gross + gross),
+          advance: Math.round(a.advance + adv),
+          benefits: Math.round(a.benefits + ben),
+          net: Math.round(a.net + net)
         };
       }, {gross:0, advance:0, benefits:0, net:0});
 
-      bodyRows += `<tr>
-        <td colspan="4"><strong>Total</strong></td>
+      const from = document.getElementById("payrollFrom").value || "";
+      const to   = document.getElementById("payrollTo").value || "";
+      const preparedBy = (document.getElementById("preparedByInput").value||"").toUpperCase();
+      const checkedBy  = (document.getElementById("checkedByInput").value||"").toUpperCase();
+      const approvedBy = (document.getElementById("approvedByInput").value||"DANA MALIWANAG").toUpperCase();
+      const logoSrc = getLogoSrc();
+
+      const html = `
+<!DOCTYPE html><html><head>
+<meta charset="utf-8"><title>${site} Payroll</title>
+<style>
+  body { margin: 10px; font-family: Arial, sans-serif; }
+  .head { display:flex; align-items:center; justify-content:space-between; }
+  .head .titles { text-align:left; }
+  .head img.logo { height:110px; width:auto; object-fit:contain; }
+  h2, h3 { margin: 5px 0; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+  th, td { border: 1px solid #000; padding: 5px; text-align: center; }
+  th.nameCol, td.nameCol { white-space: nowrap; word-break: keep-all; hyphens: none; text-align:left; }
+  .group td { text-align:left; font-weight:bold; background:#f0f0f0; }
+  .sig { margin-top: 20px; display:flex; gap:20px; justify-content: space-between; }
+  .sig div { width: 32%; text-align:center; }
+  .sig u { display:inline-block; min-width:220px; }
+</style>
+</head><body>
+  <div class="head">
+    <div class="titles">
+      <h2>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h2>
+      <h3>Payroll Report - ${site}</h3>
+      <div>Payroll Period: ${from} to ${to}</div>
+    </div>
+    <img id="plogo" class="logo" src="${logoSrc}" alt="Logo">
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="nameCol">Name</th><th>Rate/Day</th><th>Days Worked</th><th>PAY BEFORE OT</th><th>OT Hours</th><th>OT PAY</th>
+        <th>Gross Pay</th><th>Cash Advance</th><th>Benefits</th><th>Net Pay</th><th>Signature</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${bodyRows}
+      <tr>
+        <td colspan="6"><strong>Total</strong></td>
         <td><strong>${printPeso(totals.gross)}</strong></td>
         <td><strong>${printPeso(totals.advance)}</strong></td>
         <td><strong>${printPeso(totals.benefits)}</strong></td>
         <td><strong>${printPeso(totals.net)}</strong></td>
         <td></td>
-      </tr>`;
+      </tr>
+    </tbody>
+  </table>
+  <div class="sig">
+    <div>Prepared by:<br><br><u>${preparedBy}</u><br>Signature over printed name</div>
+    <div>Checked by:<br><br><u>${checkedBy}</u><br>Signature over printed name</div>
+    <div>Approved by:<br><br><u>${approvedBy}</u><br>Signature over printed name</div>
+  </div>
+</body></html>`;
 
       const win = window.open("", "_blank");
-      win.document.write(`<html>
-<head>
-  <title>${site} Payroll</title>
-  <style>
-    @media print {
-      body { margin: 10px; font-family: Arial, sans-serif; }
-      h2, h3 { margin: 5px 0; text-align: center; }
-      table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-      th, td { border: 1px solid #000; padding: 5px; text-align: center; }
-      th.nameCol, td.nameCol { white-space: nowrap; word-break: keep-all; hyphens: none; }
+      if(!win){ alert("Pop-up blocked. Allow pop-ups to print."); return; }
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+
+      const tryPrint = () => {
+        try {
+          const img = win.document.getElementById('plogo');
+          if(!img || img.complete){ win.focus(); win.print(); return; }
+          img.addEventListener('load', ()=>{ win.focus(); win.print(); });
+          img.addEventListener('error', ()=>{ win.focus(); win.print(); });
+        } catch {}
+      };
+      if(win.document.readyState === 'complete') tryPrint();
+      else win.addEventListener('load', tryPrint);
     }
-  </style>
-</head>
-<body>
-  <h2>D.M. MALIWANAG BUILDERS AND ENTERPRISES</h2>
-  <h3>Payroll Report - ${site}</h3>
-  <h3>Payroll Period: ${document.getElementById("payrollFrom").value} to ${document.getElementById("payrollTo").value}</h3>
-  <table>
-    <thead>
-      <tr>
-        <th class="nameCol">Name</th><th>Rate/Day</th><th>Days Worked</th><th>OT Hours</th>
-        <th>Gross Pay</th><th>Cash Advance</th><th>Benefits</th><th>Net Pay</th><th>Signature</th>
-      </tr>
-    </thead>
-    <tbody>${bodyRows}</tbody>
-  </table>
-  <br>
-  <div style="margin-top:20px;">Approved by:<br><br><u>DANA MALIWANAG</u><br>Signature over printed name</div>
-</body>
-</html>`);
-      win.print();
-      win.close();
-    }
+
+    /* ---------- CSV ---------- */
 
     function exportCSV(){
       computePayroll();
-      let csv="Site,Name,Rate,Days Worked,OT Hours,Gross,Cash Advance,Benefits,Net\n";
+      let csv="Site,Name,Role,Rate,Days Worked,OT Hours,Gross,Cash Advance,Benefits,Net\n";
       for(let site in siteData){
         siteData[site].forEach(emp=>{
-          csv+=`${site},${emp.name},${round0(emp.rate)},${emp.days},${emp.ot},${round0(emp.gross)},${round0(emp.advance)},${round0(emp.benefits)},${round0(emp.net)}\n`;
+          csv+=`${site},${emp.name},${cleanRole(emp.role)},${round0(emp.rate)},${emp.days},${emp.ot},${round0(emp.gross)},${round0(emp.advance)},${round0(emp.benefits)},${round0(emp.net)}\n`;
         });
       }
       const blob=new Blob([csv],{type:"text/csv"});
@@ -648,18 +765,13 @@
       link.click();
     }
 
-    // CSV parsing and import
     function handleCSVChange(e){
       const file = e.target.files && e.target.files[0];
       if(!file) return;
       const reader = new FileReader();
       reader.onload = () => {
-        try{
-          importEmployeesFromCSV(reader.result);
-        }catch(err){
-          alert("Import failed. Please check your CSV.");
-          console.error(err);
-        }
+        try{ importEmployeesFromCSV(reader.result); }
+        catch(err){ alert("Import failed. Check your CSV."); console.error(err); }
         e.target.value = "";
       };
       reader.readAsText(file);
@@ -674,13 +786,12 @@
 
       const header = rows[0].map(h=>String(h).trim().toLowerCase());
       let nameIdx = header.findIndex(h=>h==="name");
-      let rateIdx = header.findIndex(h=>h==="rate/day" || h==="rate" || h==="rate per day" || h==="rate perday");
+      let roleIdx = header.findIndex(h=>h==="role");
+      let rateIdx = header.findIndex(h=>["rate/day","rate","rate per day","rate perday"].includes(h));
 
       let startRow = 1;
       if(nameIdx===-1 || rateIdx===-1){
-        // try no header: assume first 2 columns
-        nameIdx = 0; rateIdx = 1;
-        startRow = 0;
+        nameIdx = 0; roleIdx = 1; rateIdx = 2; startRow = 0;
       }
 
       const incoming = [];
@@ -688,13 +799,14 @@
         const r = rows[i];
         const name = (r[nameIdx]||"").toString().trim().toUpperCase();
         if(!name) continue;
+        const role = cleanRole(r[roleIdx]||"LABOR");
         const rate = parseMoney(r[rateIdx]);
-        incoming.push({name, rate, days:"", ot:"", gross:0, advance:"", benefits:"", net:0});
+        incoming.push({name, role, rate, days:"", ot:"", basePay:0, otPay:0, gross:0, advance:"", benefits:"", net:0});
       }
       if(incoming.length===0){ alert("No valid rows found."); return; }
 
       if(siteData[site]?.length){
-        if(confirm("Replace current employees in this site? Click OK to replace. Cancel to append.")){
+        if(confirm("Replace current employees in this site? OK = replace, Cancel = append")){
           siteData[site] = incoming;
         }else{
           siteData[site].push(...incoming);
@@ -716,40 +828,27 @@
       return isNaN(n)?0:n;
     }
 
-    // small CSV parser with quotes support
     function parseCSV(text){
-      const out = [];
-      let row = [];
-      let cur = "";
-      let quoted = false;
-
+      const out = []; let row = []; let cur = ""; let quoted = false;
       for(let i=0;i<text.length;i++){
         const c = text[i];
         if(quoted){
           if(c === '"'){
             if(text[i+1] === '"'){ cur += '"'; i++; }
             else { quoted = false; }
-          }else{
-            cur += c;
-          }
+          }else{ cur += c; }
         }else{
           if(c === '"'){ quoted = true; }
           else if(c === ','){ row.push(cur); cur=""; }
           else if(c === '\n' || c === '\r'){
             if(c === '\r' && text[i+1] === '\n') i++;
-            row.push(cur); cur="";
-            out.push(row); row=[];
-          }else{
-            cur += c;
-          }
+            row.push(cur); cur=""; out.push(row); row=[];
+          }else{ cur += c; }
         }
       }
-      row.push(cur);
-      out.push(row);
+      row.push(cur); out.push(row);
       return out;
     }
   </script>
 </body>
 </html>
-
-
