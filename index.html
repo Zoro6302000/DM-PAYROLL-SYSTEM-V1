@@ -622,7 +622,7 @@
         const group = list.filter(e=>normRole(e.role)===role);
         if(!group.length) return;
 
-        bodyRows += `<tr class="group"><td colspan="11"><strong>${role}</strong></td></tr>`;
+        bodyRows += `<tr class="group"><td colspan="12"><strong>${role}</strong></td></tr>`;
 
         group.forEach((emp,i)=>{
           const rate = Number(emp.rate)||0;
@@ -637,7 +637,8 @@
           const net     = Math.round(gross - Math.round(adv+ben));
 
           bodyRows += `<tr>
-            <td class="nameCol">${i+1}. ${(emp.name||"")}</td>
+            <td class="rownum">${i+1}</td>
+            <td class="nameCol">${(emp.name||"")}</td>
             <td>${printPeso(rate)}</td>
             <td>${days}</td>
             <td>${printPeso(basePay)}</td>
@@ -647,7 +648,7 @@
             <td>${printPeso(adv)}</td>
             <td>${printPeso(ben)}</td>
             <td>${printPeso(net)}</td>
-            <td></td>
+            <td class="sigCell"><span class="sigNum">${i+1}</span></td>
           </tr>`;
         });
       });
@@ -689,6 +690,9 @@
   table { border-collapse: collapse; width: 100%; margin-top: 10px; }
   th, td { border: 1px solid #000; padding: 5px; text-align: center; }
   th.nameCol, td.nameCol { white-space: nowrap; word-break: keep-all; hyphens: none; text-align:left; }
+  td.rownum { width:28px; text-align:center; }
+  td.sigCell { height:32px; position:relative; }
+  .sigNum { position:absolute; top:4px; right:6px; font-size:10px; font-weight:bold; }
   .group td { text-align:left; font-weight:bold; background:#f0f0f0; }
   .sig { margin-top: 20px; display:flex; gap:20px; justify-content: space-between; }
   .sig div { width: 32%; text-align:center; }
@@ -707,19 +711,29 @@
   <table>
     <thead>
       <tr>
-        <th class="nameCol">Name</th><th>Rate/Day</th><th>Days Worked</th><th>PAY BEFORE OT</th><th>OT Hours</th><th>OT PAY</th>
-        <th>Gross Pay</th><th>Cash Advance</th><th>Benefits</th><th>Net Pay</th><th>Signature</th>
+        <th>#</th>
+        <th class="nameCol">Name</th>
+        <th>Rate/Day</th>
+        <th>Days Worked</th>
+        <th>PAY BEFORE OT</th>
+        <th>OT Hours</th>
+        <th>OT PAY</th>
+        <th>Gross Pay</th>
+        <th>Cash Advance</th>
+        <th>Benefits</th>
+        <th>Net Pay</th>
+        <th>Signature</th>
       </tr>
     </thead>
     <tbody>
       ${bodyRows}
       <tr>
-        <td colspan="6"><strong>Total</strong></td>
+        <td colspan="7"><strong>Total</strong></td>
         <td><strong>${printPeso(totals.gross)}</strong></td>
         <td><strong>${printPeso(totals.advance)}</strong></td>
         <td><strong>${printPeso(totals.benefits)}</strong></td>
         <td><strong>${printPeso(totals.net)}</strong></td>
-        <td></td>
+        <td class="sigCell"></td>
       </tr>
     </tbody>
   </table>
