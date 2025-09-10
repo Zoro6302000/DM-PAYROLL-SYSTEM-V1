@@ -142,7 +142,8 @@
   </div>
 
   <script>
-    const ROLE_OPTIONS = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR"];
+    // Added BANTAY and TULOG
+    const ROLE_OPTIONS = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR","BANTAY","TULOG"];
 
     let siteTotals = {};
     let sites = [];
@@ -153,8 +154,8 @@
     function printPeso(num){ return round0(num) === 0 ? "-" : pesoFormat(num); }
     function cleanRole(v){
       if(!v) return "LABOR";
-      const s = String(v).trim().toUpperCase().replace(/\s+/g," ");
-      if(s==="SEMI SKILLED" || s==="SEMISKILLED") return "SEMI-SKILLED";
+      let s = String(v).trim().toUpperCase().replace(/\s+/g," ");
+      if(s==="SEMI SKILLED" || s==="SEMISKILLED") s="SEMI-SKILLED";
       if(ROLE_OPTIONS.includes(s)) return s;
       return "LABOR";
     }
@@ -177,7 +178,7 @@
     document.getElementById("csvFile").addEventListener("change", handleCSVChange);
     function triggerCSV(){ document.getElementById("csvFile").click(); }
     function downloadTemplate(){
-      const csv = "Name,Role,Rate/Day\nJUAN DELA CRUZ,SKILLED,550\nMARIA CLARA,LABOR,600\n";
+      const csv = "Name,Role,Rate/Day\nJUAN DELA CRUZ,SKILLED,550\nPEDRO PENDUKO,BANTAY,450\nMARIA CLARA,LABOR,600\n";
       const blob = new Blob([csv], {type:"text/csv"});
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -339,7 +340,7 @@
         emp.basePay=basePay; emp.otPay=otPay; emp.gross=gross; emp.net=net;
 
         const roleSelect = `<select onchange="updateEmployee('${site}',${idx},'role',this.value)">
-          ${["FOREMAN","SKILLED","SEMI-SKILLED","LABOR"].map(opt=>`<option value="${opt}" ${opt===role?'selected':''}>${opt}</option>`).join('')}
+          ${ROLE_OPTIONS.map(opt=>`<option value="${opt}" ${opt===role?'selected':''}>${opt}</option>`).join('')}
         </select>`;
 
         const row=document.createElement("tr");
@@ -598,7 +599,7 @@
       else win.addEventListener('load', tryPrint);
     }
 
-    /* PRINT: PER SITE — numbering resets per role, single number on left signature */
+    /* PRINT: PER SITE — numbering resets per role */
     function printSitePayroll(){
       const site = document.getElementById("perSiteSelect").value;
       if(!site){ alert("Please select a site first."); return; }
@@ -607,7 +608,8 @@
       const list = Array.isArray(siteData[site]) ? siteData[site] : [];
       if(list.length === 0){ alert("No employees in this site."); return; }
 
-      const ROLE_ORDER = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR"];
+      // Added BANTAY and TULOG in print order
+      const ROLE_ORDER = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR","BANTAY","TULOG"];
       const normRole = (r)=>{
         let s = (r||"LABOR").toString().trim().toUpperCase().replace(/\s+/g," ");
         if(s==="SEMI SKILLED" || s==="SEMISKILLED") s="SEMI-SKILLED";
