@@ -142,8 +142,8 @@
   </div>
 
   <script>
-    // Added BANTAY and TULOG
-    const ROLE_OPTIONS = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR","BANTAY","TULOG"];
+    // Role order updated: FOREMAN, SKILLED, SEMI-SKILLED, LABOR, CHECKER, TULOG, BANTAY
+    const ROLE_OPTIONS = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR","CHECKER","TULOG","BANTAY"];
 
     let siteTotals = {};
     let sites = [];
@@ -178,7 +178,7 @@
     document.getElementById("csvFile").addEventListener("change", handleCSVChange);
     function triggerCSV(){ document.getElementById("csvFile").click(); }
     function downloadTemplate(){
-      const csv = "Name,Role,Rate/Day\nJUAN DELA CRUZ,SKILLED,550\nPEDRO PENDUKO,BANTAY,450\nMARIA CLARA,LABOR,600\n";
+      const csv = "Name,Role,Rate/Day\nJUAN DELA CRUZ,SKILLED,550\nANA SANTOS,CHECKER,500\nPEDRO PENDUKO,BANTAY,450\nMARIA CLARA,LABOR,600\n";
       const blob = new Blob([csv], {type:"text/csv"});
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -608,8 +608,8 @@
       const list = Array.isArray(siteData[site]) ? siteData[site] : [];
       if(list.length === 0){ alert("No employees in this site."); return; }
 
-      // Added BANTAY and TULOG in print order
-      const ROLE_ORDER = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR","BANTAY","TULOG"];
+      // Updated role order for printing
+      const ROLE_ORDER = ["FOREMAN","SKILLED","SEMI-SKILLED","LABOR","CHECKER","TULOG","BANTAY"];
       const normRole = (r)=>{
         let s = (r||"LABOR").toString().trim().toUpperCase().replace(/\s+/g," ");
         if(s==="SEMI SKILLED" || s==="SEMISKILLED") s="SEMI-SKILLED";
