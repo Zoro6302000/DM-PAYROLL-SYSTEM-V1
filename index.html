@@ -394,7 +394,7 @@
       if(raw===".") raw="0.5";
       else if(raw.startsWith(".")&&raw.length>1){raw="0"+raw;}
       let val=parseFloat(raw)||0;
-      const maxDays=getMaxDays();
+      const maxDays=getMaxDays(){ return 7; };
       val=Math.round(val*2)/2;
       if(val<0) val=0;
       if(field==="days"&&maxDays>0&&val>maxDays){
@@ -887,3 +887,4 @@
   </script>
 </body>
 </html>
+
